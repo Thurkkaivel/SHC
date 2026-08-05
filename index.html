@@ -58,6 +58,8 @@ body{font-family:'Noto Sans Tamil','Noto Sans Devanagari','Noto Sans Telugu','No
 .lang-pre-select{margin-top:14px;padding-top:12px;border-top:1px solid #e0e0e0}
 .lang-pre-select label{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);display:block;margin-bottom:5px}
 .lang-pre-select select{width:100%;border:1.5px solid var(--border);border-radius:6px;padding:6px 9px;font-size:12px;font-family:inherit;background:white}
+#loginLangSel option,#navLangSel option{background:#f1f8f1;color:#173a1f;padding:6px}
+#navLangSel option:checked,#navLangSel option:hover,#loginLangSel option:checked,#loginLangSel option:hover{background:var(--green-dark);color:#fff}
 
 /* ══ TOP NAV ══ */
 .top-nav{max-width:1140px;margin:0 auto 16px;background:linear-gradient(135deg,var(--green-deep),var(--green-dark) 60%,#1a5220);border-radius:11px;padding:11px 18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;box-shadow:var(--shadow-md);border:1px solid rgba(201,168,76,.25)}
@@ -311,6 +313,12 @@ body{font-family:'Noto Sans Tamil','Noto Sans Devanagari','Noto Sans Telugu','No
 .io-card .io-icon{font-size:24px;margin-bottom:6px}
 .io-card .io-title{font-size:11px;font-weight:700;color:var(--green-dark);margin-bottom:8px}
 .io-card .io-btns{display:flex;flex-direction:column;gap:5px}
+.bulk-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:16px}
+.bulk-pill{background:#eafaf0;color:var(--green-dark);border:1px solid #cdeedd;font-size:11.5px;font-weight:700;padding:6px 14px;border-radius:999px;white-space:nowrap}
+.icon-btn{width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;background:#fff;border:1.5px solid #bfe6cd;border-radius:7px;color:#2b3a33;cursor:pointer;transition:background .15s,border-color .15s;padding:0}
+.icon-btn:hover{background:#f1fbf5;border-color:var(--green-mid)}
+.icon-btn svg{width:16px;height:16px;pointer-events:none}
+.bulk-toolbar-spacer{flex:1}
 .file-input-hidden{display:none}
 .backup-section{background:var(--gold-pale);border:1px solid var(--gold);border-radius:9px;padding:12px;margin-bottom:12px}
 
@@ -573,9 +581,10 @@ body{font-family:'Noto Sans Tamil','Noto Sans Devanagari','Noto Sans Telugu','No
   <div class="nav-right">
     <button class="nav-tab active" onclick="switchView('dashboard')" id="tab-dashboard">📊 Dashboard</button>
     <button class="nav-tab" onclick="switchView('soil-entry')" id="tab-soil-entry">🧪 Soil Data</button>
+    <button class="nav-tab" onclick="switchView('bulk-upload')" id="tab-bulk-upload" style="display:none">⬆️ Bulk Upload</button>
     <button class="nav-tab" onclick="switchView('card')" id="tab-card">📋 Card</button>
     <button class="nav-tab" onclick="switchView('io')" id="tab-io">📁 I/O</button>
-    <button class="nav-tab" onclick="switchView('limits')" id="tab-limits">📏 Limits</button>
+    <button class="nav-tab" onclick="switchView('limits')" id="tab-limits" style="display:none">📏 Limits</button>
     <button class="nav-tab" onclick="switchView('passwords')" id="tab-passwords" style="display:none">🔑 Passwords</button>
     <select id="navLangSel" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.3);color:rgba(255,255,255,.85);border-radius:5px;padding:3px 7px;font-size:11px;cursor:pointer" onchange="applyLang(this.value)">
       <option value="ta">தமிழ்</option>
@@ -585,6 +594,7 @@ body{font-family:'Noto Sans Tamil','Noto Sans Devanagari','Noto Sans Telugu','No
       <option value="kn">ಕನ್ನಡ</option>
       <option value="mr">मराठी</option>
     </select>
+    <span id="cloudStatusBadge" style="display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;color:#fff;background:#9ca3af;margin-right:10px;">⚠️ Cloud not configured</span>
     <div class="nav-user">👤 <strong id="navUserName">—</strong></div>
     <button class="nav-logout" id="logoutBtn" onclick="doLogout()">⬡ Logout</button>
   </div>
@@ -620,13 +630,19 @@ body{font-family:'Noto Sans Tamil','Noto Sans Devanagari','Noto Sans Telugu','No
           <tbody id="sampleTbody"></tbody>
         </table>
       </div>
-      <div id="noRecords" style="text-align:center;padding:28px;color:var(--text-muted);font-size:13px;display:none">📭 No records yet. Add samples using the Soil Data tab.</div>
+      <div id="noRecords" style="text-align:center;padding:28px;color:var(--text-muted);font-size:13px;display:none">📭 No records yet. Records entered or uploaded by the Soil Operator will appear here.</div>
     </div>
   </div>
 </div>
 
 <!-- ===== SOIL DATA ENTRY ===== -->
 <div class="view" id="view-soil-entry">
+  <div class="dash-stats">
+    <div class="stat-card"><div class="stat-icon">🧪</div><div class="stat-num" id="stat-total-se">0</div><div class="stat-lbl">Total Samples</div></div>
+    <div class="stat-card"><div class="stat-icon">⏳</div><div class="stat-num" id="stat-pending-se">0</div><div class="stat-lbl">Pending</div></div>
+    <div class="stat-card gold"><div class="stat-icon">✅</div><div class="stat-num" id="stat-done-se">0</div><div class="stat-lbl">Generated</div></div>
+    <div class="stat-card"><div class="stat-icon">🖨️</div><div class="stat-num" id="stat-printed-se">0</div><div class="stat-lbl">Printed</div></div>
+  </div>
   <div class="panel">
     <div class="panel-hdr"><div class="panel-hdr-text"><h3>Soil Sample Data Entry</h3><p>Enter soil test values · NABL Lab · All 5 languages · Local storage</p></div></div>
     <div class="panel-body">
@@ -741,6 +757,53 @@ body{font-family:'Noto Sans Tamil','Noto Sans Devanagari','Noto Sans Telugu','No
   </div>
 </div>
 
+<!-- ===== BULK CSV UPLOAD (Soil Operator only) ===== -->
+<div class="view" id="view-bulk-upload">
+  <div class="dash-stats">
+    <div class="stat-card"><div class="stat-icon">🧪</div><div class="stat-num" id="stat-total-bu">0</div><div class="stat-lbl">Total Samples</div></div>
+    <div class="stat-card"><div class="stat-icon">⏳</div><div class="stat-num" id="stat-pending-bu">0</div><div class="stat-lbl">Pending</div></div>
+    <div class="stat-card gold"><div class="stat-icon">✅</div><div class="stat-num" id="stat-done-bu">0</div><div class="stat-lbl">Generated</div></div>
+    <div class="stat-card"><div class="stat-icon">🖨️</div><div class="stat-num" id="stat-printed-bu">0</div><div class="stat-lbl">Printed</div></div>
+  </div>
+  <div class="panel">
+    <div class="panel-hdr">
+      <div class="panel-hdr-text"><h3>⬆️ Bulk Soil Test Data Upload</h3><p>Upload up to 1000 records at once · CSV format only</p></div>
+    </div>
+    <div class="panel-body">
+      <div class="bulk-toolbar">
+        <span class="bulk-pill">⬆️ Bulk Upload</span>
+        <div class="bulk-toolbar-spacer"></div>
+        <button class="icon-btn" onclick="loadCloudSamples()" title="Refresh from cloud">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+        </button>
+        <button class="icon-btn" onclick="downloadBulkTemplateCSV()" title="Download CSV template">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        </button>
+        <label class="icon-btn" title="Upload CSV file">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+          <input type="file" class="file-input-hidden" id="bulkImportCsv" accept=".csv" onchange="importBulkCSV(this)">
+        </label>
+      </div>
+      <div style="background:linear-gradient(90deg,#e8f5e9,#f1f8f1);border:1.5px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px">
+        <span style="font-size:18px">💡</span>
+        <div style="font-size:10.5px;color:var(--green-dark);line-height:1.6">
+          <strong>Only .csv files are accepted</strong>, up to a maximum of 1000 records per file.<br>
+          Use ⬇ to download the lab report template, fill in your soil test data, then use ⬆ to upload it. Use 🔄 to refresh the tracking numbers above from the cloud.
+        </div>
+      </div>
+      <div id="bulk-upload-summary" style="display:none;margin-top:16px"></div>
+      <div id="bulk-io-msg" style="font-size:12px;padding:10px;border-radius:6px;display:none;margin-top:12px"></div>
+      <div style="font-size:10.5px;color:var(--text-muted);margin-top:14px;padding:10px;background:#f8f8f8;border-radius:6px;line-height:1.7">
+        <strong>ℹ️ Notes:</strong><br>
+        • The template matches the standard NAF lab report export — Name, Address, Report Number, Lab Id, dates, Crop, and all nutrient columns.<br>
+        • Rows missing a Name are rejected; other rows are imported even if some fields are blank.<br>
+        • Duplicate Lab Id / Sample ID values already in the system are skipped, not overwritten.<br>
+        • Files with more than 1000 rows are rejected — please split large files.
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ===== GENERATE CARD ===== -->
 <div class="view" id="view-card">
   <div class="panel no-print" id="adminCardPanel">
@@ -754,6 +817,19 @@ body{font-family:'Noto Sans Tamil','Noto Sans Devanagari','Noto Sans Telugu','No
           <button class="btn-gold no-print" onclick="doPrint()">🖨️ Print / PDF (A4)</button>
           <button class="btn-primary no-print" onclick="savePDF()" style="background:linear-gradient(135deg,#1e3a8a,#2563eb)">📥 Save as PDF</button>
           <button class="btn-outline no-print" onclick="resetCard()">↺ Clear</button>
+        </div>
+      </div>
+      <div class="bulk-card-gen no-print" style="margin-top:16px;padding-top:14px;border-top:1.5px dashed var(--border)">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <button class="btn-gold no-print" onclick="bulkGenerateAllCards()" id="bulkGenBtn">📚 Generate All Soil Health Cards (Bulk PDF)</button>
+          <span style="font-size:10.5px;color:var(--text-muted)">One click generates a single combined PDF with every saved sample's Soil Health Card.</span>
+        </div>
+        <div id="bulkGenProgress" style="display:none;margin-top:10px;max-width:520px">
+          <div style="background:#eee;border-radius:6px;height:10px;overflow:hidden">
+            <div id="bulkGenBar" style="background:linear-gradient(90deg,var(--green-mid),var(--gold));height:100%;width:0%;transition:width .2s"></div>
+          </div>
+          <div id="bulkGenStatus" style="font-size:10.5px;color:var(--text-muted);margin-top:5px"></div>
+          <a id="bulkGenDownloadLink" href="#" download="" class="btn-primary no-print" style="display:none;margin-top:10px;text-decoration:none;background:linear-gradient(135deg,#1e3a8a,#2563eb)">⬇️ Download Bulk PDF</a>
         </div>
       </div>
     </div>
@@ -1008,7 +1084,7 @@ body{font-family:'Noto Sans Tamil','Noto Sans Devanagari','Noto Sans Telugu','No
           </label>
           <button class="btn-danger" onclick="clearDB()">🗑 Clear All Data</button>
         </div>
-        <div style="font-size:10px;color:#92400e;margin-top:6px">Backup file: NAF_Soil_Health_Backup_YYYYMMDD.json · All data stored in browser localStorage</div>
+        <div style="font-size:10px;color:#92400e;margin-top:6px">Backup file: NAF_Soil_Health_Backup_YYYYMMDD.json · Data is stored in the cloud database (Supabase) and cached locally for offline use</div>
       </div>
       <!-- ── Template download info bar ── -->
       <div style="background:linear-gradient(90deg,#e8f5e9,#f1f8f1);border:1.5px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px">
@@ -1228,6 +1304,40 @@ body{font-family:'Noto Sans Tamil','Noto Sans Devanagari','Noto Sans Telugu','No
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ═══════════════════════════════════════════════════════════════
+// CLOUD DATABASE CONFIG (Supabase)
+// ═══════════════════════════════════════════════════════════════
+// 1) Create a free project at https://supabase.com
+// 2) Project Settings -> API -> copy "Project URL" and "anon public" key
+// 3) Paste them below, replacing the placeholder text
+// 4) Run the SQL setup script (provided in the setup guide) in the
+//    Supabase SQL Editor to create the "soil_reports" table
+const SUPABASE_URL  = 'PASTE_YOUR_SUPABASE_PROJECT_URL_HERE';
+const SUPABASE_ANON_KEY = 'PASTE_YOUR_SUPABASE_ANON_KEY_HERE';
+
+let supabaseClient = null;
+let CLOUD_ENABLED = false;
+try {
+  if (SUPABASE_URL && SUPABASE_ANON_KEY &&
+      !SUPABASE_URL.includes('PASTE_') && !SUPABASE_ANON_KEY.includes('PASTE_')) {
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    CLOUD_ENABLED = true;
+  }
+} catch(e) { console.error('Supabase init failed:', e); CLOUD_ENABLED = false; }
+
+function setCloudStatus(state, text) {
+  // state: 'online' | 'offline' | 'syncing' | 'error'
+  const el = document.getElementById('cloudStatusBadge');
+  if (!el) return;
+  const colors = { online:'#16a34a', offline:'#9ca3af', syncing:'#d97706', error:'#dc2626' };
+  const icons  = { online:'☁️', offline:'⚠️', syncing:'⏳', error:'❌' };
+  el.style.background = colors[state] || '#9ca3af';
+  el.textContent = (icons[state]||'') + ' ' + text;
+  el.title = text;
+}
+</script>
 <script>
 
 // ═══════════════════════════════════════════════════════════════
@@ -2135,14 +2245,17 @@ function applyLang(lc) {
   // Nav tabs
   txt('tab-dashboard', L.tab_dashboard || '📊 Dashboard');
   txt('tab-soil-entry', L.tab_soil || '🧪 Soil Data');
+  txt('tab-bulk-upload', L.tab_bulk || '⬆️ Bulk Upload');
   txt('tab-card', L.tab_card || '📋 Card');
   txt('tab-io', L.tab_io || '📁 I/O');
   txt('tab-limits', L.tab_limits || '📏 Limits');
 
-  // Dashboard stats
+  // Dashboard stats (repeats in groups of 4: Dashboard page, Soil Data
+  // page, and Bulk Upload page all share the same Total/Pending/
+  // Generated/Printed labels)
   const statLbls = document.querySelectorAll('.stat-lbl');
   const statKeys = ['dash_total','dash_pending','dash_generated','dash_printed'];
-  statLbls.forEach((el,i) => { if(statKeys[i] && L[statKeys[i]]) el.textContent = L[statKeys[i]]; });
+  statLbls.forEach((el,i) => { const k = statKeys[i % 4]; if(k && L[k]) el.textContent = L[k]; });
 
   // Card Page 1 titles
   txt('card_org_native', L.org_native);
@@ -2335,25 +2448,37 @@ function doLogin() {
     document.getElementById('navLangSel').value = preLang;
     applyLang(preLang);
     // Role-based tab visibility
-    const cardTab = document.getElementById('tab-card');
-    const ioTab = document.getElementById('tab-io');
+    const dashTab   = document.getElementById('tab-dashboard');
+    const entryTab  = document.getElementById('tab-soil-entry');
+    const bulkTab   = document.getElementById('tab-bulk-upload');
+    const cardTab   = document.getElementById('tab-card');
+    const ioTab     = document.getElementById('tab-io');
     const limitsTab = document.getElementById('tab-limits');
-    const pwTab = document.getElementById('tab-passwords');
+    const pwTab     = document.getElementById('tab-passwords');
     if(currentUser.role === 'soil') {
-      // Soil Operator: hide Card, I/O, Limits, Passwords tabs
-      if(cardTab) cardTab.style.display = 'none';
-      if(ioTab) ioTab.style.display = 'none';
+      // Soil Operator: only Soil Data Entry + Bulk Upload. No Dashboard,
+      // Card, I/O, Limits, or Passwords.
+      if(dashTab)   dashTab.style.display = 'none';
+      if(entryTab)  entryTab.style.display = '';
+      if(bulkTab)   bulkTab.style.display = '';
+      if(cardTab)   cardTab.style.display = 'none';
+      if(ioTab)     ioTab.style.display = 'none';
       if(limitsTab) limitsTab.style.display = 'none';
-      if(pwTab) pwTab.style.display = 'none';
+      if(pwTab)     pwTab.style.display = 'none';
     } else {
-      // Admin: show all tabs
-      if(cardTab) cardTab.style.display = '';
-      if(ioTab) ioTab.style.display = '';
-      if(limitsTab) limitsTab.style.display = '';
-      if(pwTab) pwTab.style.display = '';
+      // Admin: Dashboard, Card, I/O, Passwords. No Soil Data Entry,
+      // Bulk Upload, or Limits.
+      if(dashTab)   dashTab.style.display = '';
+      if(entryTab)  entryTab.style.display = 'none';
+      if(bulkTab)   bulkTab.style.display = 'none';
+      if(cardTab)   cardTab.style.display = '';
+      if(ioTab)     ioTab.style.display = '';
+      if(limitsTab) limitsTab.style.display = 'none';
+      if(pwTab)     pwTab.style.display = '';
     }
-    switchView('dashboard');
+    switchView(currentUser.role === 'soil' ? 'soil-entry' : 'dashboard');
     renderTable(); updateSelectSample(); updateStats();
+    loadCloudSamples();
     err.style.display = 'none';
   } else {
     err.style.display = 'block';
@@ -2372,8 +2497,8 @@ function doLogout() {
   document.getElementById('loginPass').value = '';
   document.getElementById('loginError').style.display = 'none';
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  // Hide admin-only tabs on logout
-  ['tab-card','tab-io','tab-limits','tab-passwords'].forEach(id => {
+  // Hide role-specific tabs on logout
+  ['tab-card','tab-io','tab-limits','tab-passwords','tab-bulk-upload'].forEach(id => {
     const el = document.getElementById(id);
     if(el) el.style.display = 'none';
   });
@@ -2444,13 +2569,69 @@ function switchView(v) {
   if(v === 'dashboard') renderTable();
   if(v === 'card') updateSelectSample();
   if(v === 'io') buildFieldRefTable();
+  if(v === 'soil-entry' || v === 'bulk-upload') updateStats();
 }
 
 // ═══════════════════════════════════════════════════════════════
-// DATA STORAGE (localStorage)
+// DATA STORAGE (Supabase cloud database, with localStorage as an
+// offline cache/fallback so the app still works without a network)
 // ═══════════════════════════════════════════════════════════════
 let SAMPLES = JSON.parse(localStorage.getItem('naf_samples') || '[]');
-function saveSamples() { localStorage.setItem('naf_samples', JSON.stringify(SAMPLES)); }
+let cloudSyncQueue = Promise.resolve(); // serialize cloud writes
+
+// Local-only save (always happens instantly, keeps app responsive)
+function saveSamplesLocal() { localStorage.setItem('naf_samples', JSON.stringify(SAMPLES)); }
+
+// Main save: writes locally immediately, then pushes the full
+// current SAMPLES array to the cloud (upsert by id).
+function saveSamples() {
+  saveSamplesLocal();
+  if (!CLOUD_ENABLED) { setCloudStatus('offline', 'Cloud not configured'); return; }
+  cloudSyncQueue = cloudSyncQueue.then(async () => {
+    setCloudStatus('syncing', 'Saving to cloud...');
+    try {
+      if (SAMPLES.length === 0) { setCloudStatus('online', 'Cloud synced'); return; }
+      const { error } = await supabaseClient.from('soil_reports').upsert(SAMPLES, { onConflict: 'id' });
+      if (error) { console.error('Cloud save error:', error); setCloudStatus('error', 'Cloud save failed'); }
+      else setCloudStatus('online', 'Cloud synced');
+    } catch(e) { console.error(e); setCloudStatus('error', 'Cloud save failed'); }
+  });
+}
+
+// Deletes a single record from the cloud table.
+async function deleteSampleCloud(id) {
+  if (!CLOUD_ENABLED) return;
+  try {
+    const { error } = await supabaseClient.from('soil_reports').delete().eq('id', id);
+    if (error) console.error('Cloud delete error:', error);
+  } catch(e) { console.error(e); }
+}
+
+// Deletes every record in the cloud table (used by "Clear All Data").
+async function deleteAllSamplesCloud() {
+  if (!CLOUD_ENABLED) return;
+  try {
+    const { error } = await supabaseClient.from('soil_reports').delete().neq('id', '__none__');
+    if (error) console.error('Cloud clear-all error:', error);
+  } catch(e) { console.error(e); }
+}
+
+// Pulls all records from the cloud on login/startup and replaces the
+// local working copy so every device sees the same shared data.
+async function loadCloudSamples() {
+  if (!CLOUD_ENABLED) { setCloudStatus('offline', 'Cloud not configured'); return; }
+  setCloudStatus('syncing', 'Loading from cloud...');
+  try {
+    const { data, error } = await supabaseClient.from('soil_reports').select('*');
+    if (error) { console.error('Cloud load error:', error); setCloudStatus('error', 'Cloud load failed'); return; }
+    if (Array.isArray(data)) {
+      SAMPLES = data;
+      saveSamplesLocal();
+      renderTable(); updateSelectSample(); updateStats();
+    }
+    setCloudStatus('online', 'Cloud synced');
+  } catch(e) { console.error(e); setCloudStatus('error', 'Cloud load failed'); }
+}
 
 // ═══════════════════════════════════════════════════════════════
 // SAMPLE FIELDS
@@ -2512,17 +2693,28 @@ function resetForm() {
 function deleteS(id) {
   if(!confirm('Delete this sample?')) return;
   SAMPLES = SAMPLES.filter(s => s.id !== id);
-  saveSamples(); renderTable(); updateSelectSample(); updateStats();
+  saveSamplesLocal();
+  deleteSampleCloud(id);
+  renderTable(); updateSelectSample(); updateStats();
 }
 
 // ═══════════════════════════════════════════════════════════════
 // DASHBOARD
 // ═══════════════════════════════════════════════════════════════
 function updateStats() {
-  document.getElementById('stat-total').textContent = SAMPLES.length;
-  document.getElementById('stat-pending').textContent = SAMPLES.filter(s=>s.status==='Pending').length;
-  document.getElementById('stat-done').textContent = SAMPLES.filter(s=>s.status==='Generated'||s.status==='Printed').length;
-  document.getElementById('stat-printed').textContent = SAMPLES.filter(s=>s.status==='Printed').length;
+  const total = SAMPLES.length;
+  const pending = SAMPLES.filter(s=>s.status==='Pending').length;
+  const done = SAMPLES.filter(s=>s.status==='Generated'||s.status==='Printed').length;
+  const printed = SAMPLES.filter(s=>s.status==='Printed').length;
+  const setTxt = (id,val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
+  setTxt('stat-total', total);   setTxt('stat-pending', pending);
+  setTxt('stat-done', done);     setTxt('stat-printed', printed);
+  // Mirrored tracking stats shown above the Soil Data Entry page
+  setTxt('stat-total-se', total);   setTxt('stat-pending-se', pending);
+  setTxt('stat-done-se', done);     setTxt('stat-printed-se', printed);
+  // Mirrored tracking stats shown above the Bulk Upload page
+  setTxt('stat-total-bu', total);   setTxt('stat-pending-bu', pending);
+  setTxt('stat-done-bu', done);     setTxt('stat-printed-bu', printed);
 }
 
 function renderTable() {
@@ -2882,6 +3074,198 @@ function importCSV(input) {
   reader.readAsText(file);
 }
 
+// ── Bulk CSV Import (Soil Operator page, max 1000 rows) ──────────
+// Understands the standard NAF lab-report export format (Name,
+// Address, Report Number, Lab Id, dates, Crop, nutrient columns…)
+// as well as tab-delimited ".csv" exports from lab software.
+
+// Normalizes a header string for matching: strips punctuation/#'s,
+// collapses embedded newlines & whitespace, lowercases.
+function normalizeHeader(h) {
+  return (h || '').replace(/[\r\n]+/g, ' ').toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+// Maps normalized lab-report column names to internal SAMPLES fields.
+const BULK_HEADER_MAP = {
+  'lab id': 'id',
+  'report number': 'repno',
+  'report date': 'date',
+  'analysis completed on': 'date',   // overrides Report Date when present
+  'name': 'farmer',
+  'address': 'village',
+  'crop': 'crop',
+  'ph': 'pH',
+  'electrical conductivity': 'EC',
+  'organic matter': 'OM',
+  'nitrate nitrogen': 'N',
+  'available phosphorus': 'P',
+  'potassium exchangeable k': 'K',
+  'calcium exchangeable ca': 'Ca',
+  'magnesium exchangeable mg': 'Mg',
+  'sulfur available s': 'S',
+  'sodium exchangeable na': 'Na',
+  'zinc available zn': 'Zn',
+  'manganese available mn': 'Mn',
+  'iron available fe': 'Fe',
+  'copper available cu': 'Cu',
+  'boron available b': 'B',
+  'cec by addition': 'CEC',
+  'k saturation': 'Ksat',
+  'ca saturation': 'Casat',
+  'mg saturation': 'Mgsat',
+  'na saturation': 'Nasat',
+  // Also accept the app's own internal field names directly, so
+  // files exported by this app (or the old template) still import.
+  'id': 'id', 'farmer': 'farmer', 'village': 'village', 'district': 'district',
+  'block': 'block', 'lab': 'lab', 'father': 'father', 'mobile': 'mobile',
+  'survey': 'survey', 'area': 'area', 'season': 'season', 'irrigation': 'irrigation',
+  'date': 'date', 'repno': 'repno'
+};
+
+// Full quote-and-newline-aware delimited text parser. Auto-detects
+// tab vs comma, since NAF lab software often exports ".csv" files
+// that are actually tab-delimited.
+function parseDelimitedText(text) {
+  const sample = text.slice(0, 2000);
+  const tabCount = (sample.match(/\t/g) || []).length;
+  const commaCount = (sample.match(/,/g) || []).length;
+  const delim = tabCount > commaCount ? '\t' : ',';
+
+  const rows = [];
+  let row = [], field = '', inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQuotes) {
+      if (c === '"') { if (text[i+1] === '"') { field += '"'; i++; } else { inQuotes = false; } }
+      else field += c;
+    } else {
+      if (c === '"') inQuotes = true;
+      else if (c === delim) { row.push(field); field = ''; }
+      else if (c === '\r') { /* skip */ }
+      else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+      else field += c;
+    }
+  }
+  if (field.length > 0 || row.length > 0) { row.push(field); rows.push(row); }
+  return rows.filter(r => r.some(v => (v||'').trim() !== ''));
+}
+
+// Converts DD.MM.YYYY (common in lab exports) to YYYY-MM-DD; leaves
+// other formats untouched.
+function normalizeBulkDate(v) {
+  if (!v) return v;
+  const m = v.trim().match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})$/);
+  if (!m) return v.trim();
+  return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+}
+
+function importBulkCSV(input) {
+  const file = input.files[0]; if (!file) return;
+  if (!/\.csv$/i.test(file.name)) {
+    showBulkMsg('❌ Only .csv files are accepted.', false);
+    input.value=''; return;
+  }
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const rows = parseDelimitedText(e.target.result);
+      if (rows.length < 2) { showBulkMsg('❌ No data rows found in file.', false); input.value=''; return; }
+      const headers = rows[0].map(h => h.trim());
+      const normHeaders = headers.map(normalizeHeader);
+      const dataRows = rows.slice(1);
+      const totalRows = dataRows.length;
+
+      if (totalRows > 1000) {
+        showBulkMsg(`❌ File has ${totalRows} records. Maximum allowed is 1000 records per upload. Please split the file.`, false);
+        input.value=''; return;
+      }
+
+      let imported = 0, rejected = 0;
+      const reasons = [];
+      for (let i = 0; i < dataRows.length; i++) {
+        const rowNum = i + 2; // account for header row
+        const vals = dataRows[i];
+        const obj = {};
+        normHeaders.forEach((nh, idx) => {
+          const field = BULK_HEADER_MAP[nh];
+          if (field && vals[idx] !== undefined && vals[idx] !== '') obj[field] = vals[idx].trim();
+        });
+        if (!obj.farmer) { rejected++; reasons.push(`Row ${rowNum}: Missing Name`); continue; }
+        // Split "S/o / D/o / W/o" out of the farmer name into father, if present
+        const fm = obj.farmer.match(/^(.*?)\s+(S\/o|D\/o|W\/o)\.?\s+(.*)$/i);
+        if (fm) { obj.father = fm[3].trim(); obj.farmer = fm[1].trim(); }
+        if (obj.crop) obj.crop = obj.crop.replace(/^crop\s*:\s*/i, '').trim();
+        if (obj.date) obj.date = normalizeBulkDate(obj.date);
+        if (!obj.id) obj.id = obj.repno || ('SMP-'+Date.now()+'-'+i);
+        if (SAMPLES.find(s => s.id === obj.id)) { rejected++; reasons.push(`Row ${rowNum}: Duplicate Lab Id / Sample ID (${obj.id})`); continue; }
+        if (obj.pH && (isNaN(obj.pH) || obj.pH < 0 || obj.pH > 14)) { rejected++; reasons.push(`Row ${rowNum}: Invalid pH value`); continue; }
+        if (!obj.status) obj.status = 'Pending';
+        if (!obj.savedAt) obj.savedAt = new Date().toISOString();
+        if (!obj.enteredBy) obj.enteredBy = currentUser ? currentUser.name : 'Soil Operator';
+        SAMPLES.push(obj);
+        imported++;
+      }
+      saveSamples(); renderTable(); updateSelectSample(); updateStats();
+      renderBulkSummary(file.name, totalRows, imported, rejected, reasons);
+      showBulkMsg(`✅ Upload complete: ${imported} of ${totalRows} records imported.`, true);
+    } catch(e) { showBulkMsg('❌ CSV import failed: '+e.message, false); }
+    input.value='';
+  };
+  reader.readAsText(file);
+}
+
+// Downloads a CSV template matching the standard NAF lab report
+// export format, with one filled example row as a guide.
+function downloadBulkTemplateCSV() {
+  const headers = ['Name','Address','Report Number','Report Date','Lab report No','Lab Id',
+    'Sample Recevied Date','Analysis start Date','Analysis Completed on','Crop','pH',
+    'Electrical Conductivity','Organic Matter','Nitrate Nitrogen','Available Phosphorus',
+    'Potassium Exchangeable K','Calcium Exchangeable Ca','Magnesium Exchangeable Mg',
+    'Sulfur Available S','Sodium Exchangeable Na','Zinc Available Zn','Manganese Available Mn',
+    'Iron Available Fe','Copper Available Cu','Boron Available B','CEC (by addition)',
+    'K Saturation','Ca Saturation','Mg Saturation','Na Saturation'];
+  const example = ['Mr.Veeresh Achari S/o Mr.Petha Monniaiya Achari','"Tappetla Morsu (Vill), Telangana."',
+    'NAF/LSD/S/1540/2025-26','06.10.2025','TC138582500002393F','NAF/S/1540','25.09.2025','06.10.2025',
+    '06.10.2025','Crop : Chilli','5.4','0.03','0.64','31.7','157.14','99','347','85','141','8.3','1.08',
+    '16.52','21.49','0.4','0.9','3.31','7.67','52.41','21.40','18.52'];
+  const csv = headers.join(',') + '\n' + example.join(',') + '\n';
+  dlFile('NAF_SHC_Import_Template.csv', csv, 'text/csv');
+  showBulkMsg('✅ Template downloaded. Fill in your rows below the example and upload it here.', true);
+}
+
+function renderBulkSummary(fileName, total, imported, rejected, reasons) {
+  const box = document.getElementById('bulk-upload-summary');
+  if(!box) return;
+  const reasonHtml = reasons.length
+    ? '<ul style="margin:8px 0 0 18px;padding:0;font-size:11px;color:#7a1212">' +
+      reasons.slice(0,25).map(r=>`<li>${r}</li>`).join('') +
+      (reasons.length>25 ? `<li>…and ${reasons.length-25} more</li>` : '') + '</ul>'
+    : '';
+  box.innerHTML = `
+    <div class="panel" style="margin:0">
+      <div class="panel-hdr"><div class="panel-hdr-text"><h3>📊 Import Summary</h3><p>${fileName}</p></div></div>
+      <div class="panel-body">
+        <div class="dash-stats">
+          <div class="stat-card"><div class="stat-icon">📄</div><div class="stat-num">${total}</div><div class="stat-lbl">Total Records</div></div>
+          <div class="stat-card gold"><div class="stat-icon">✅</div><div class="stat-num">${imported}</div><div class="stat-lbl">Imported</div></div>
+          <div class="stat-card"><div class="stat-icon">❌</div><div class="stat-num">${rejected}</div><div class="stat-lbl">Rejected</div></div>
+        </div>
+        ${reasons.length ? '<div style="font-size:11px;font-weight:700;color:#7a1212">Reasons:</div>'+reasonHtml : ''}
+      </div>
+    </div>`;
+  box.style.display = 'block';
+}
+
+function showBulkMsg(text, ok=true) {
+  const el = document.getElementById('bulk-io-msg');
+  if(!el) return;
+  el.style.display = 'block';
+  el.style.background = ok ? '#e8f5e9' : '#fdecec';
+  el.style.color = ok ? '#166534' : '#7a1212';
+  el.textContent = text;
+}
+
 function parseCsvLine(line) {
   const result=[]; let cur=''; let inQ=false;
   for(let i=0;i<line.length;i++){
@@ -3017,7 +3401,7 @@ function restoreDB(input) {
 function clearDB() {
   if(!confirm(`⚠️ Delete ALL ${SAMPLES.length} records? This cannot be undone!`)) return;
   if(!confirm('Confirm: permanently delete all soil sample data?')) return;
-  SAMPLES=[]; saveSamples(); renderTable(); updateSelectSample(); updateStats();
+  SAMPLES=[]; saveSamplesLocal(); deleteAllSamplesCloud(); renderTable(); updateSelectSample(); updateStats();
   showIOMsg('✅ All data cleared.');
 }
 
@@ -3117,6 +3501,94 @@ async function savePDF() {
     btn.textContent = origText;
     btn.disabled = false;
   }
+}
+
+// ── Bulk Generate All Soil Health Cards (Admin, single click) ───
+let BULK_GEN_IN_PROGRESS = false;
+
+async function bulkGenerateAllCards() {
+  if (SAMPLES.length === 0) { alert('No saved soil samples to generate cards for.'); return; }
+  if (typeof window.jspdf === 'undefined' || typeof html2canvas === 'undefined') {
+    alert('PDF library loading... Please wait a moment and try again.'); return;
+  }
+  if (!confirm(`Generate Soil Health Cards for all ${SAMPLES.length} saved samples?\n\nThis will produce one combined PDF (2 pages per sample) and may take a few minutes for large batches. Continue?`)) return;
+
+  const btn = document.getElementById('bulkGenBtn');
+  const progressWrap = document.getElementById('bulkGenProgress');
+  const bar = document.getElementById('bulkGenBar');
+  const status = document.getElementById('bulkGenStatus');
+  const dlLink = document.getElementById('bulkGenDownloadLink');
+  const selectEl = document.getElementById('selectSample');
+  const soilCard = document.getElementById('soil-card');
+
+  // Reset any previous download link/blob before starting a new batch
+  dlLink.style.display = 'none';
+  if (dlLink.dataset.blobUrl) { URL.revokeObjectURL(dlLink.dataset.blobUrl); delete dlLink.dataset.blobUrl; }
+
+  BULK_GEN_IN_PROGRESS = true;
+  btn.disabled = true;
+  progressWrap.style.display = 'block';
+  bar.style.width = '0%';
+  status.textContent = 'Starting…';
+
+  const { jsPDF } = window.jspdf;
+  const A4_W = 210, A4_H = 297;
+  const captureOpts = { scale: 3, useCORS: true, allowTaint: true, backgroundColor: '#ffffff', logging: false, windowWidth: 794 };
+  const addFit = (pdf, canvas) => {
+    const scale = Math.max(A4_W / canvas.width, A4_H / canvas.height);
+    const w = canvas.width * scale, h = canvas.height * scale;
+    pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, Math.min(w, A4_W), Math.min(h, A4_H));
+  };
+
+  const total = SAMPLES.length;
+  let pdf = null, done = 0;
+  const failed = [];
+
+  for (const s of SAMPLES) {
+    try {
+      status.textContent = `Generating ${done + failed.length + 1} of ${total} — ${s.farmer || s.id}...`;
+      selectEl.value = s.id;
+      loadSampleToCard();
+      generateCard();
+      await new Promise(r => setTimeout(r, 60)); // let layout settle before capture
+
+      const page1El = soilCard.querySelector('.card-page:not(.card-page-p2)');
+      const page2El = soilCard.querySelector('.card-page-p2');
+      const canvas1 = await html2canvas(page1El, captureOpts);
+      const canvas2 = await html2canvas(page2El, captureOpts);
+
+      if (!pdf) { pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' }); }
+      else { pdf.addPage('a4', 'portrait'); }
+      addFit(pdf, canvas1);
+      pdf.addPage('a4', 'portrait');
+      addFit(pdf, canvas2);
+
+      s.status = 'Generated';
+      done++;
+    } catch (e) {
+      console.error('Bulk card generation failed for', s.id, e);
+      failed.push(s.id);
+    }
+    bar.style.width = Math.round(((done + failed.length) / total) * 100) + '%';
+  }
+
+  BULK_GEN_IN_PROGRESS = false;
+  saveSamples(); renderTable(); updateSelectSample(); updateStats();
+
+  if (pdf) {
+    const filename = `NAF_Bulk_Soil_Health_Cards_${done}records_${new Date().toISOString().substring(0,10)}.pdf`;
+    const blobUrl = URL.createObjectURL(pdf.output('blob'));
+    dlLink.href = blobUrl;
+    dlLink.download = filename;
+    dlLink.dataset.blobUrl = blobUrl;
+    dlLink.textContent = `⬇️ Download Bulk PDF (${done} record${done===1?'':'s'})`;
+    dlLink.style.display = 'inline-block';
+  }
+
+  status.textContent = failed.length
+    ? `✅ Done: ${done} cards generated. ⚠️ ${failed.length} failed (${failed.join(', ')}). Click below to download.`
+    : `✅ All ${done} Soil Health Cards generated. Click below to download the combined PDF.`;
+  btn.disabled = false;
 }
 
 function doPrint() {
@@ -3499,7 +3971,7 @@ function generateCard() {
   setTimeout(()=>document.getElementById('soil-card').scrollIntoView({behavior:'smooth'}),120);
 
   const id = document.getElementById('selectSample').value;
-  if(id){ const s=SAMPLES.find(x=>x.id===id); if(s&&(s.status==='Pending'||s.status==='Generated')){s.status='Generated';saveSamples();renderTable();} }
+  if(id){ const s=SAMPLES.find(x=>x.id===id); if(s&&(s.status==='Pending'||s.status==='Generated')){s.status='Generated'; if(!BULK_GEN_IN_PROGRESS){saveSamples();renderTable();}} }
 
   const cropK = sv('i_crop');
   const cd = getCropData(cropK);
